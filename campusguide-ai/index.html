@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>CampusGuide AI</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 100 100%27><text y=%27.9em%27 font-size=%2790%27>🎓</text></svg>">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07071a;--g:rgba(255,255,255,.06);--b:rgba(255,255,255,.14);--a:#7c5cff;--c:#22d3ee;--p:#ff4fd8;--t:#eef;--m:#9aa}
+*{box-sizing:border-box;margin:0}html{scroll-behavior:smooth}
+body{font-family:'Space Grotesk',system-ui,sans-serif;background:var(--bg);color:var(--t);overflow-x:hidden}
+#bg{position:fixed;inset:0;z-index:-1}
+nav{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:50;display:flex;gap:4px;align-items:center;padding:8px 12px;border-radius:40px;background:rgba(10,10,30,.6);backdrop-filter:blur(16px);border:1px solid var(--b);max-width:96vw}
+nav b{margin:0 10px;background:linear-gradient(90deg,var(--c),var(--p));-webkit-background-clip:text;color:transparent;white-space:nowrap}
+nav a{color:var(--t);text-decoration:none;padding:7px 12px;border-radius:20px;font-size:14px;white-space:nowrap}nav a:hover,nav a.on{background:var(--g);color:var(--c)}
+.links{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+button{font:inherit;cursor:pointer;border:0;border-radius:24px;padding:9px 18px;color:#fff;background:linear-gradient(135deg,var(--a),var(--p));transition:.2s}button:hover{transform:translateY(-2px);box-shadow:0 8px 24px #7c5cff66}
+button.ghost{background:var(--g);border:1px solid var(--b)}
+section{min-height:100vh;padding:110px 6vw 60px;max-width:1200px;margin:auto}
+h1{font-size:clamp(40px,8vw,88px);line-height:1;background:linear-gradient(90deg,#fff,var(--c),var(--p));-webkit-background-clip:text;color:transparent}
+h2{font-size:clamp(28px,5vw,48px);margin-bottom:8px}.sub{color:var(--m);margin-bottom:28px;max-width:640px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px;perspective:900px}
+.card{background:var(--g);border:1px solid var(--b);border-radius:20px;padding:20px;backdrop-filter:blur(10px);transition:transform .15s,border .2s;transform-style:preserve-3d}
+.card:hover{border-color:var(--c)}.card h3{margin-bottom:6px;font-size:18px}.card p,.card a{font-size:14px;color:var(--m)}.card a{color:var(--c);word-break:break-all}
+.tag{display:inline-block;font-size:11px;padding:3px 10px;border-radius:12px;background:#7c5cff44;margin-bottom:8px}
+.reveal{opacity:0;transform:translateY(60px) rotateX(15deg);transition:1s cubic-bezier(.2,.8,.2,1)}.reveal.in{opacity:1;transform:none}
+.hero{display:flex;flex-direction:column;justify-content:center;gap:20px}.hero p{font-size:20px;color:var(--m);max-width:620px}
+.stats{display:flex;gap:16px;flex-wrap:wrap}.stat{padding:16px 24px}.stat b{font-size:34px;display:block;color:var(--c)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+#map{height:480px;border-radius:20px;border:1px solid var(--b)}
+#chat{height:340px;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:10px}
+.m{padding:10px 14px;border-radius:16px;max-width:85%;white-space:pre-wrap;font-size:15px}.u{align-self:flex-end;background:var(--a)}.a{background:#ffffff14}
+.in-row{display:flex;gap:8px;margin-top:10px}input{flex:1;padding:12px 16px;border-radius:24px;border:1px solid var(--b);background:var(--g);color:var(--t);font:inherit;width:100%}
+#modal{position:fixed;inset:0;background:#000a;z-index:99;display:none;place-items:center}#modal.show{display:grid}
+#modal .card{width:min(380px,92vw);display:flex;flex-direction:column;gap:10px;background:#12122e}
+footer{text-align:center;padding:40px 10px;color:var(--m);border-top:1px solid var(--b)}footer p{margin:4px}
+</style></head><body>
+<canvas id="bg"></canvas>
+<nav><b>🎓 CampusGuide AI</b><div class="links"><a href="#dashboard">Dashboard</a><a href="#departments">Departments</a><a href="#hostels">Hostels</a><a href="#clubs">Clubs</a><a href="#map-sec">Map</a><a href="#assistant">AI Assistant</a><a href="#about">About</a></div><button id="authBtn" onclick="openAuth()">Sign in</button></nav>
+
+<section id="dashboard" class="hero">
+<h1 class="reveal">Your whole campus,<br>one AI away.</h1>
+<p class="reveal">Everything a student needs — from campus information to nearby essentials — in one AI-powered platform.</p>
+<div class="row reveal"><button onclick="go('assistant')">Ask the AI 🤖</button><button class="ghost" onclick="go('map-sec')">Explore map 🗺️</button></div>
+<div class="stats"><div class="card stat reveal"><b id="s1">0</b>Departments</div><div class="card stat reveal"><b id="s2">0</b>Student clubs</div><div class="card stat reveal"><b id="s3">0</b>Key contacts</div><div class="card stat reveal"><b>24/7</b>AI help</div></div>
+</section>
+<section id="departments"><h2 class="reveal">🏢 Departments & Contacts</h2><p class="sub reveal">HOD emails and important offices at ITER.</p><div class="grid" id="deps"></div><h3 style="margin:28px 0 12px" class="reveal">Important offices</h3><div class="grid" id="offs"></div></section>
+<section id="hostels"><h2 class="reveal">🏠 Hostels</h2><p class="sub reveal">Facilities, rules and warden information.</p><div class="grid" id="hos"></div></section>
+<section id="clubs"><h2 class="reveal">🎯 Student Clubs</h2><p class="sub reveal">Follow a club on Instagram and message the team to join.</p><div class="row" id="cf"></div><div class="grid" id="cl"></div></section>
+<section id="map-sec"><h2 class="reveal">🗺️ Campus & Nearby Map</h2><p class="sub reveal">Powered by OpenStreetMap. Pick a category to find places within 2 km of campus.</p>
+<div class="row" id="cats"></div><div id="map" class="reveal"></div></section>
+<section id="assistant"><h2 class="reveal">🤖 AI Campus Assistant</h2><p class="sub reveal">Ask about departments, hostels, clubs, contacts and more. Tap 🎤 to speak.</p>
+<div class="card reveal"><div id="chat"><div class="m a">Hi! I'm CampusGuide AI. Sign in and ask me anything about ITER.</div></div>
+<div class="in-row"><input id="q" placeholder="e.g. Who do I contact for placements?" onkeydown="if(event.key==='Enter')send()"><button class="ghost" id="mic" onclick="voice()">🎤</button><button onclick="send()">Send</button></div></div></section>
+<section id="about"><h2 class="reveal">About</h2><div class="card reveal"><p style="font-size:16px;color:var(--t)">CampusGuide AI is a student companion for the Institute of Technical Research and Education, Siksha 'O' Anusandhan Deemed to be University — Jagamara, Khandagiri, Bhubaneswar - 751030, Odisha, India.<br><br>Hostel rules and warden details should always be confirmed with the official office.</p></div></section>
+<footer><p>Developed and deployed by Kaman Das ©2026</p><p>Made with Love ❤️</p></footer>
+
+<div id="modal" onclick="if(event.target===this)this.classList.remove('show')"><div class="card"><h3 id="mt">Sign in</h3><input id="nm" placeholder="Name" style="display:none"><input id="em" type="email" placeholder="Email"><input id="pw" type="password" placeholder="Password (6+ chars)"><p id="err" style="color:#f77"></p><button onclick="submitAuth()" id="sb">Sign in</button><a href="#" onclick="toggleMode();return false" id="tg">New here? Create an account</a></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const $=id=>document.getElementById(id),go=id=>$(id).scrollIntoView();
+// ---------- 3D background ----------
+const cv=$('bg'),R=new THREE.WebGLRenderer({canvas:cv,alpha:true,antialias:true});R.setPixelRatio(Math.min(devicePixelRatio,2));
+const S=new THREE.Scene(),C=new THREE.PerspectiveCamera(60,1,.1,200);C.position.z=12;
+const knot=new THREE.Mesh(new THREE.TorusKnotGeometry(2.2,.6,160,20),new THREE.MeshStandardMaterial({color:0x7c5cff,wireframe:true,emissive:0x2211aa}));S.add(knot);
+const ico=new THREE.Mesh(new THREE.IcosahedronGeometry(1.4,1),new THREE.MeshStandardMaterial({color:0x22d3ee,flatShading:true}));ico.position.set(-7,-14,-3);S.add(ico);
+const ring=new THREE.Mesh(new THREE.TorusGeometry(2,.15,16,80),new THREE.MeshStandardMaterial({color:0xff4fd8}));ring.position.set(7,-30,-2);S.add(ring);
+const oct=new THREE.Mesh(new THREE.OctahedronGeometry(1.6),new THREE.MeshStandardMaterial({color:0x7c5cff,flatShading:true}));oct.position.set(-6,-48,-2);S.add(oct);
+S.add(new THREE.AmbientLight(0xffffff,.5));const pl=new THREE.PointLight(0x22d3ee,1.5,60);pl.position.set(5,5,10);S.add(pl);
+const pg=new THREE.BufferGeometry(),pa=new Float32Array(1800*3).map((_,i)=>i%3==1?-Math.random()*70+10:(Math.random()-.5)*50);
+pg.setAttribute('position',new THREE.BufferAttribute(pa,3));S.add(new THREE.Points(pg,new THREE.PointsMaterial({size:.07,color:0xffffff})));
+let mx=0,my=0;addEventListener('mousemove',e=>{mx=e.clientX/innerWidth-.5;my=e.clientY/innerHeight-.5});
+function rs(){R.setSize(innerWidth,innerHeight);C.aspect=innerWidth/innerHeight;C.updateProjectionMatrix()}rs();addEventListener('resize',rs);
+(function loop(t){requestAnimationFrame(loop);const s=scrollY/(document.body.scrollHeight-innerHeight||1);
+C.position.y=-s*50;C.position.x+=(mx*3-C.position.x)*.05;C.rotation.z=s*.4;
+knot.rotation.x+=.003;knot.rotation.y+=.005;knot.position.y=-s*30+2;knot.position.x=Math.sin(s*6)*4+(innerWidth>800?4:0);
+[ico,ring,oct].forEach((m,i)=>{m.rotation.x+=.01*(i+1);m.rotation.y+=.012});R.render(S,C)})();
+// ---------- reveal + tilt ----------
+const io=new IntersectionObserver(es=>es.forEach(e=>e.isIntersecting&&e.target.classList.add('in')),{threshold:.12});
+const obs=()=>document.querySelectorAll('.reveal:not(.seen)').forEach(e=>{e.classList.add('seen');io.observe(e)});
+document.addEventListener('mousemove',e=>{const c=e.target.closest&&e.target.closest('.card');document.querySelectorAll('.card.tilt').forEach(x=>x.style.transform='');
+if(c&&!c.closest('#modal')&&!c.querySelector('#chat')){const r=c.getBoundingClientRect();c.classList.add('tilt');c.style.transform=`rotateY(${((e.clientX-r.left)/r.width-.5)*12}deg) rotateX(${-((e.clientY-r.top)/r.height-.5)*12}deg) translateZ(8px)`}});
+const sec=[...document.querySelectorAll('section')];addEventListener('scroll',()=>{let cur=sec.filter(s=>s.getBoundingClientRect().top<200).pop();document.querySelectorAll('.links a').forEach(a=>a.classList.toggle('on',cur&&a.getAttribute('href')==='#'+cur.id))});
+// ---------- data ----------
+let D;const card=(h,b)=>`<div class="card reveal">${h}${b}</div>`;
+fetch('/api/data').then(r=>r.json()).then(d=>{D=d;
+$('s1').textContent=d.departments.length;$('s2').textContent=d.clubs.length;$('s3').textContent=d.offices.length+d.departments.length;
+$('deps').innerHTML=d.departments.map(x=>card(`<span class="tag">${x.code}</span><h3>${x.name}</h3>`,`<p>Head of Department</p><a href="mailto:${x.email}">${x.email}</a>`)).join('');
+$('offs').innerHTML=d.offices.map(x=>card(`<h3>${x.icon} ${x.name}</h3>`,`<a href="mailto:${x.email}">${x.email}</a>`)).join('');
+$('hos').innerHTML=d.hostels.map(x=>card(`<h3>${x.name}</h3>`,`<p>${x.info}</p><p style="margin-top:8px">• ${x.facilities.join('<br>• ')}</p>`)).join('');
+const cats=['All',...new Set(d.clubs.map(c=>c.category))];
+$('cf').innerHTML=cats.map(c=>`<button class="ghost" onclick="fc('${c}')">${c}</button>`).join('');window.fc=c=>{$('cl').innerHTML=d.clubs.filter(x=>c=='All'||x.category==c).map(x=>card(`<span class="tag">${x.category}</span><h3>${x.name}</h3>`,`<a target="_blank" rel="noopener" href="${x.link}">Instagram →</a>`)).join('');obs()};fc('All');
+initMap(d.center);obs()}).catch(()=>{});obs();
+// ---------- map (OpenStreetMap) ----------
+const Q={'🏪 Stationery':'shop=stationery','🍽️ Restaurants':'amenity=restaurant','☕ Cafés':'amenity=cafe','💊 Pharmacies':'amenity=pharmacy','🏧 ATMs':'amenity=atm','🖨️ Printing':'shop=copyshop','🏥 Hospitals':'amenity=hospital'};
+let map,layer,ctr;
+function initMap(c){ctr=c;map=L.map('map').setView(c,15);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap contributors'}).addTo(map);
+L.marker(c).addTo(map).bindPopup('<b>ITER, SOA University</b><br>Jagamara, Khandagiri').openPopup();layer=L.layerGroup().addTo(map);
+$('cats').innerHTML=Object.keys(Q).map(k=>`<button class="ghost" onclick="near('${k}')">${k}</button>`).join('')}
+async function near(k){layer.clearLayers();const[a,b]=Q[k].split('=');const q=`[out:json][timeout:20];(node["${a}"="${b}"](around:2000,${ctr});way["${a}"="${b}"](around:2000,${ctr}););out center 40;`;
+try{const r=await(await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(q)})).json();
+if(!r.elements.length)alert('No results found in OpenStreetMap near campus for this category.');
+r.elements.forEach(e=>{const la=e.lat||e.center.lat,lo=e.lon||e.center.lon,n=e.tags.name||k;
+L.marker([la,lo]).addTo(layer).bindPopup(`<b>${n}</b><br><a target="_blank" href="https://www.openstreetmap.org/directions?engine=fossgis_osrm_foot&route=${ctr[0]},${ctr[1]};${la},${lo}">Directions from campus</a>`)})}catch(e){alert('Could not load places. Try again.')}}
+// ---------- auth ----------
+let mode='in',tok=localStorage.getItem('cg_tok'),uname=localStorage.getItem('cg_name');
+function ui(){$('authBtn').textContent=tok?`${uname} · Logout`:'Sign in';$('authBtn').onclick=tok?()=>{localStorage.clear();tok=null;ui()}:openAuth}
+function openAuth(){$('modal').classList.add('show')}
+function toggleMode(){mode=mode=='in'?'up':'in';$('nm').style.display=mode=='up'?'block':'none';$('mt').textContent=$('sb').textContent=mode=='in'?'Sign in':'Create account';$('tg').textContent=mode=='in'?'New here? Create an account':'Have an account? Sign in'}
+async function submitAuth(){const b={name:$('nm').value,email:$('em').value,password:$('pw').value};
+try{const r=await fetch('/api/'+(mode=='in'?'login':'register'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)});const j=await r.json();
+if(!r.ok){$('err').textContent=j.error;return}tok=j.token;uname=j.name;localStorage.setItem('cg_tok',tok);localStorage.setItem('cg_name',uname);$('modal').classList.remove('show');$('err').textContent='';ui()}catch(e){$('err').textContent='Network error'}}
+ui();
+// ---------- chat + voice ----------
+const add=(t,c)=>{const d=document.createElement('div');d.className='m '+c;d.textContent=t;$('chat').append(d);$('chat').scrollTop=1e9;return d};
+async function send(){const m=$('q').value.trim();if(!m)return;if(!tok){openAuth();return}add(m,'u');$('q').value='';const w=add('Thinking…','a');
+try{const r=await fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tok},body:JSON.stringify({message:m})});const j=await r.json();w.textContent=j.reply||j.error;if(r.status==401){tok=null;ui()}}catch(e){w.textContent='Network error.'}}
+function voice(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return alert('Voice input is not supported in this browser. Try Chrome or Edge.');
+const r=new SR();r.lang='en-IN';r.onstart=()=>$('mic').textContent='🔴';r.onend=()=>$('mic').textContent='🎤';r.onresult=e=>{$('q').value=e.results[0][0].transcript;send()};r.start()}
+</script></body></html>
